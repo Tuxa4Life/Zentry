@@ -3,15 +3,16 @@ const path = require("node:path")
 const psList = require("ps-list").default
 const { exec } = require("child_process")
 
-let processes = []
-let blocked = {exes: [], windows: []}
+let mainWindow = null
+let tray = null
+let isQuitting = false
 
 if (require("electron-squirrel-startup")) {
     app.quit()
 }
 
 const createWindow = () => {
-    const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width: 800,
         height: 520,
         resizable: false,
@@ -24,7 +25,7 @@ const createWindow = () => {
 
     const menuTemplate = [
         {
-          label: "File",
+          label: "App",
           submenu: [
             { label: "Exit", role: "quit" }
           ]
@@ -52,8 +53,9 @@ const createWindow = () => {
     const menu = Menu.buildFromTemplate(menuTemplate)
     Menu.setApplicationMenu(menu)
 
-    mainWindow.on('closed', () => {
-        mainWindow = null;
+    mainWindow.on('close', (e) => {
+        e.preventDefault()
+        mainWindow.hide()
     });
 }
 
@@ -63,38 +65,47 @@ ipcMain.on("message-from-renderer", (event, data) => {
 
 app.whenReady().then(async () => {
     createWindow()
+    createTray()
 
     app.on("activate", () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow()
-        }
+        } else if (!mainWindow) createWindow();
     })
-
-    try {
-        processes = await psList()  
-    } catch (error) {
-        console.error("Failed to get process list.")
-    }
-
-    
-
-    setInterval(async () => {
-        blockProcesses(blocked.exes)
-    }, 5000)
 })
 
-app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") {
-        app.quit()
+app.on('before-quit', () => {
+    isQuitting = true;
+});
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
     }
-})
+  });
 
-const blockProcesses = async (blocked) => {
-    const processes = await psList()
+const createTray = () => {
+    const iconPath = path.join(__dirname, '../assets/icons/Zentry Logo.ico')
+    const icon = nativeImage.createFromPath(iconPath);
 
-    processes.forEach((process) => {
-        if (blocked.includes(process.name)) {
-            exec(`taskkill /PID ${process.pid} /F`)
+    tray = new Tray(icon);
+    tray.setToolTip('Zentry');
+
+    const contextMenu = Menu.buildFromTemplate([
+        { label: 'Open', click: () => mainWindow.show() },
+        { label: 'Hide' },
+        { label: 'Exit', click: () => {
+            mainWindow.destroy();
+            app.quit();
+        } }
+    ]);
+
+    tray.setContextMenu(contextMenu);
+
+    tray.on('click', () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+          createWindow();
         }
-    })
+        mainWindow.show();
+    });
 }
