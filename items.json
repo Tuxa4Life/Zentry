@@ -1,7 +1,12 @@
 {
     "exe": [
-        "style.css",
-        "index.html",
-        "MultiMC.exe"
-    ]
+        "Sheldon Ross - First Course in Probability.pdf",
+        "MultiMC.exe",
+        "Photoshop.exe",
+        "Adobe Premiere Pro.exe",
+        "Scarab.exe",
+        "uninstall.exe",
+        "BombSquad.exe"
+    ],
+    "blocked": []
 }
