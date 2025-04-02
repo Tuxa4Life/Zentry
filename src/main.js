@@ -2,6 +2,9 @@ const { app, BrowserWindow, ipcMain, Menu, shell, Tray, nativeImage } = require(
 const path = require("node:path")
 const psList = require("ps-list").default
 const { exec } = require("child_process")
+const fs = require('fs')
+const items = require('../items.json')
+const { log } = require("node:console")
 
 let mainWindow = null
 let tray = null
@@ -22,15 +25,13 @@ const createWindow = () => {
         icon: path.join(__dirname, '../assets/icons/Zentry Logo.ico')
     })
 
+    mainWindow.webContents.openDevTools()
     const menuTemplate = [
         {
           label: "App",
           submenu: [
             { label: 'Hide', click: () => mainWindow.hide() },
-            { label: "Exit", click: () => {
-                mainWindow.destroy();
-                app.quit();
-            } }
+            { label: "Exit", click: () => quitApplication() }
           ]
         },
         {
@@ -62,8 +63,17 @@ const createWindow = () => {
     });
 }
 
-ipcMain.on("message-from-renderer", (event, data) => {
-    blocked = data
+ipcMain.on("exe-entry", (event, data) => {
+    let exes = [...items.exe]
+
+    if (!exes.includes(data)) {
+        exes.push(data)
+
+        let output = items
+        output.exe = exes
+
+        fs.writeFile('./items.json', JSON.stringify(output, null, 4), (err) => { if (err) console.log(err)})
+    }
 })
 
 app.whenReady().then(async () => {
@@ -93,10 +103,7 @@ const createTray = () => {
     const contextMenu = Menu.buildFromTemplate([
         { label: 'Show', click: () => mainWindow.show() },
         { label: 'Hide', click: () => mainWindow.hide() },
-        { label: 'Exit', click: () => {
-            mainWindow.destroy();
-            app.quit();
-        } }
+        { label: 'Exit', click: () => quitApplication() }
     ]);
 
     tray.setContextMenu(contextMenu);
@@ -107,4 +114,9 @@ const createTray = () => {
         }
         mainWindow.show();
     });
+}
+
+const quitApplication = () => {
+    mainWindow.destroy();
+    app.quit();
 }
