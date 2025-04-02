@@ -5,7 +5,6 @@ const { exec } = require("child_process")
 
 let mainWindow = null
 let tray = null
-let isQuitting = false
 
 if (require("electron-squirrel-startup")) {
     app.quit()
@@ -27,7 +26,11 @@ const createWindow = () => {
         {
           label: "App",
           submenu: [
-            { label: "Exit", role: "quit" }
+            { label: 'Hide', click: () => mainWindow.hide() },
+            { label: "Exit", click: () => {
+                mainWindow.destroy();
+                app.quit();
+            } }
           ]
         },
         {
@@ -74,10 +77,6 @@ app.whenReady().then(async () => {
     })
 })
 
-app.on('before-quit', () => {
-    isQuitting = true;
-});
-
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
       app.quit();
@@ -92,8 +91,8 @@ const createTray = () => {
     tray.setToolTip('Zentry');
 
     const contextMenu = Menu.buildFromTemplate([
-        { label: 'Open', click: () => mainWindow.show() },
-        { label: 'Hide' },
+        { label: 'Show', click: () => mainWindow.show() },
+        { label: 'Hide', click: () => mainWindow.hide() },
         { label: 'Exit', click: () => {
             mainWindow.destroy();
             app.quit();
