@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, Menu, shell, Tray, nativeImage } = require(
 const path = require("node:path")
 const fs = require('fs')
 const items = require('../items.json')
+const { blockProcesses } = require('./utils/processes.js')
 
 let mainWindow = null
 let tray = null
@@ -69,6 +70,10 @@ app.whenReady().then(async () => {
             createWindow()
         } else if (!mainWindow) createWindow()
     })
+
+    setInterval(() => {
+        blockProcesses(items.blocked)
+    }, 1500)
 })
 
 app.on('window-all-closed', () => {
