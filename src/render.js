@@ -1,7 +1,6 @@
 const { ipcRenderer } = require('electron')
 
-let items = []
-let blocked = []
+let items = { exe: [], blocked: [] }
 
 document.addEventListener('DOMContentLoaded', () => {
     sendData('initial-items')
@@ -22,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const inputBtn = document.querySelector('.button.inp')
     inputBtn.addEventListener('click', () => {
-        
+        alert('Input')
     })
 
 });
@@ -31,46 +30,80 @@ const sendData = (key, data) => {
     ipcRenderer.send(key, data);
 }
 
-ipcRenderer.on('render-items', (_, exes) => {
-    items = exes
-    renderItems(items)
-})
-
-ipcRenderer.on('render-blocked', (_, blocks) => {
-    blocked = blocks
-    renderItems(items)
-})
 
 const renderItems = (items) => {
-    const $items = document.querySelector('.item-wrapper')
+    const $items = document.querySelector('.item-wrapper');
+    let names = items.exe;
 
-    $items.innerHTML = ``
-    for (let i = 0; i < items.length; i++) {
-        let content = String(items[i]).split('.exe')[0].substring(0, 15)
+    $items.innerHTML = '';
+    for (let i = 0; i < names.length; i++) {
+        let content = String(names[i]).split('.exe')[0].substring(0, 15);
 
-        $items.innerHTML += `
-            <div onmouseover="this.querySelector('i').style.display = 'block'" onmouseout="this.querySelector('i').style.display = 'none'" class="item" style="position: relative; width: 97px; height: 90px; background-color: gray; margin: 14px; border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-                <i style="cursor: pointer; position: absolute; display: none; top: -10px; right: -13px; font-size: 20px; color: black;" class="times circle outline icon"></i>
-                <h3 style="margin: 0; color: white; font-size: min(20px, 12vw); word-wrap: break-word; overflow-wrap: break-word; max-width: 100%;">${content}</h3>
-                <input onchange="handleCheckbox(this, '${items[i]}')" ${blocked.includes(items[i]) ? ' checked ' : ''} type="checkbox" style="transform: scale(2); margin-top: 10px; cursor: pointer;">
-            </div>
-        `
+        let itemDiv = createItemContainer();
+        let closeIcon = createCloseIcon();
+        let header = createHeader(content);
+        let checkbox = createCheckbox();
+
+        if (items.blocked.includes(names[i])) checkbox.checked = true
+
+        itemDiv.addEventListener('mouseover', () => closeIcon.style.display = 'block');
+        itemDiv.addEventListener('mouseout', () => closeIcon.style.display = 'none');
+
+        itemDiv.appendChild(closeIcon);
+        itemDiv.appendChild(header);
+        itemDiv.appendChild(checkbox);
+        $items.appendChild(itemDiv);
+
+        closeIcon.addEventListener('click', () => sendData('remove-item', names[i]))
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) sendData('add-blocked', names[i]) 
+            else sendData('remove-blocked', names[i])
+        })
     }
-}
-
-const addInBlocks = (item) => {
-    if (!blocked.includes(item)) {
-        blocked.push(item)
-        sendData('blocked-changed', blocked)
-    }
-}
-
-const removeFromBlocks = (item) => {
-    blocked = blocked.filter(e => e !== item);
-    sendData('blocked-changed', blocked)
 };
 
-const handleCheckbox = (checkbox, item) => {
-    if (checkbox.checked) addInBlocks(item)
-    else removeFromBlocks(item)
-}
+ipcRenderer.on('render-items', (_, itemsFromMain) => {
+    items = itemsFromMain
+    renderItems(items)
+})
+
+// Element Functions
+const createItemContainer = () => {
+    let itemDiv = document.createElement('div');
+    itemDiv.className = 'item';
+    Object.assign(itemDiv.style, {
+        position: 'relative', width: '97px', height: '90px', backgroundColor: 'gray',
+        margin: '14px', borderRadius: '3px', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', textAlign: 'center'
+    });
+    return itemDiv;
+};
+
+const createCloseIcon = () => {
+    let closeIcon = document.createElement('i');
+    closeIcon.className = 'times circle outline icon';
+    Object.assign(closeIcon.style, {
+        cursor: 'pointer', position: 'absolute', display: 'none', top: '-10px',
+        right: '-13px', fontSize: '20px', color: 'black'
+    });
+    return closeIcon;
+};
+
+const createHeader = (content) => {
+    let header = document.createElement('h3');
+    header.textContent = content;
+    Object.assign(header.style, {
+        margin: '0', color: 'white', fontSize: '14px',
+        wordWrap: 'break-word', overflowWrap: 'break-word', maxWidth: '100%'
+    });
+    return header;
+};
+
+const createCheckbox = () => {
+    let checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    Object.assign(checkbox.style, {
+        transform: 'scale(2)', marginTop: '10px', cursor: 'pointer'
+    });
+    return checkbox;
+};
