@@ -109,6 +109,11 @@ const writeInFile = (data) => {
     fs.writeFile('./items.json', JSON.stringify(data, null, 4), (err) => { if (err) console.log(err)})
 }
 
+const updateGlobally = (event, items) => {
+    writeInFile(items)
+    event.reply('render-items', items)
+}
+
 ipcMain.on("exe-entry", (event, newItem) => {
     let exes = [...items.exe]
 
@@ -118,8 +123,7 @@ ipcMain.on("exe-entry", (event, newItem) => {
         let output = items
         output.exe = exes
 
-        writeInFile(output)
-        event.reply('render-items', items)
+        updateGlobally(event, output)
     }
 })
 
@@ -127,34 +131,24 @@ ipcMain.on('initial-items', (event) => {
     event.reply('render-items', items)
 })
 
-ipcMain.on('blocked-changed', (_, data) => {
-    let output = items
-    output.blocked = data
-
-    writeInFile(output)
-})
-
 ipcMain.on('remove-item', (event, item) => {
     let output = items
     output.blocked = output.blocked.filter(e => e !== item)
     output.exe = output.exe.filter(e => e !== item)
 
-    writeInFile(output)
-    event.reply('render-items', items)
+    updateGlobally(event, output)
 })
 
 ipcMain.on('add-blocked', (event, item) => {
     let output = items
     output.blocked.push(item)
 
-    writeInFile(output)
-    event.reply('render-items', items)
+    updateGlobally(event, output)
 })
 
 ipcMain.on('remove-blocked', (event, item) => {
     let output = items
     output.blocked = output.blocked.filter(e => e !== item)
 
-    writeInFile(output)
-    event.reply('render-items', items)
+    updateGlobally(event, output)
 })
