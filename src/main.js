@@ -29,6 +29,7 @@ const createWindow = () => {
           label: "App",
           submenu: [
             { label: 'Hide', click: () => mainWindow.hide() },
+            { type: 'separator' },
             { label: "Exit", click: () => quitApplication() }
           ]
         },
